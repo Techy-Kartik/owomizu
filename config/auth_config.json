@@ -1,6 +1,6 @@
 {
   "authentication": {
-    "enabled": true,
+    "enabled": false,
     "auth_code": "TEST-ONLY",
     "session_timeout": 3600,
     "max_failed_attempts": 5,
