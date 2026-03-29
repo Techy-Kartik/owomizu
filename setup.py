@@ -1,181 +1,121 @@
-
+# setup.py
+import discord
+from discord.ext import commands
+import asyncio
 import os
-import json
-import time
-import sys
-import subprocess
-import shutil
+import random
+from datetime import datetime
 
-# Color codes
-CYAN = "\033[1;36m"
-GREEN = "\033[1;32m"
-YELLOW = "\033[1;33m"
-RED = "\033[1;31m"
-RESET = "\033[m"
+# Get tokens and channel ID from environment variables
+TOKENS = os.getenv('TOKENS')
+CHANNEL_ID = os.getenv('CHANNEL_ID')
 
-def clear():
-    os.system("cls" if os.name == "nt" else "clear")
+# Validate environment variables
+if not TOKENS:
+    print("ERROR: TOKENS environment variable not set!")
+    print("Please set TOKENS as a comma-separated list (e.g., token1,token2,token3)")
+    exit(1)
 
-def is_termux():
-    return os.path.isdir("/data/data/com.termux")
+if not CHANNEL_ID:
+    print("ERROR: CHANNEL_ID environment variable not set!")
+    print("Please set CHANNEL_ID in your Render environment variables")
+    exit(1)
 
-def install_dependencies():
-    print(f"{CYAN}[0] Checking dependencies...{RESET}")
+# Parse tokens (comma-separated)
+token_list = [token.strip() for token in TOKENS.split(',')]
+print(f"Loaded {len(token_list)} tokens")
+
+try:
+    CHANNEL_ID = int(CHANNEL_ID)
+except ValueError:
+    print(f"ERROR: CHANNEL_ID must be a number! Got: {CHANNEL_ID}")
+    exit(1)
+
+# Create bot instances
+bots = []
+for i, token in enumerate(token_list):
+    bot = commands.Bot(command_prefix=f"!{i}", intents=discord.Intents.default())
+    bots.append(bot)
+
+async def send_message_to_channel(bot, channel_id, message):
+    """Send a message to a specific channel"""
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+        channel = bot.get_channel(channel_id)
+        if not channel:
+            channel = await bot.fetch_channel(channel_id)
         
-        # Termux specific
-        if is_termux():
-            print(f"{CYAN}[0] Installing Termux specific dependencies...{RESET}")
-            try:
-                subprocess.check_call(["pkg", "install", "python-numpy", "python-pillow", "termux-api", "-y"])
-            except:
-                pass
-                
-        print(f"{GREEN}[✓] Dependencies installed!{RESET}\n")
+        await channel.send(message)
+        print(f"[{datetime.now()}] Sent message from bot: {message[:50]}...")
+        return True
     except Exception as e:
-        print(f"{RED}[!] Error installing dependencies: {e}{RESET}")
-        print(f"{YELLOW}Continuing anyway...{RESET}\n")
+        print(f"[{datetime.now()}] Error sending message: {e}")
+        return False
 
-def print_banner():
-    clear()
-    print(f"{CYAN}")
-    print(r"""
-  ███╗   ███╗██╗███████╗██╗   ██╗
-  ████╗ ████║██║╚══███╔╝██║   ██║
-  ██╔████╔██║██║  ███╔╝ ██║   ██║  
-  ██║╚██╔╝██║██║ ███╔╝  ██║   ██║ 
-  ██║ ╚═╝ ██║██║███████╗╚██████╔╝ 
-  ╚═╝     ╚═╝╚═╝╚══════╝ ╚═════╝ 
- M I Z U   N E T W O R K   水
-    """)
-    print(f"{RESET}")
-    print(f"{GREEN}Interactive Setup Wizard{RESET}\n")
-
-def main():
-    print_banner()
-    print("Welcome to Mizu OwO Setup!")
-    print("This wizard will help you configure your bot quickly.\n")
+async def rotate_messages():
+    """Continuously send messages from different bots"""
+    messages = [
+        "Hello from bot!",
+        "Another message!",
+        "This is a test",
+        "Random message here",
+        "Discord bot activity",
+        "How's everyone doing?",
+        "Just saying hi!",
+        "Bot is active",
+        "Sending from different tokens",
+        "Message rotation active"
+    ]
     
-    # 0. Dependencies
-    install_dependencies()
-
-    # 1. Token Setup
-    print(f"{YELLOW}[1] Account Setup{RESET}")
-    tokens = []
+    message_index = 0
+    bot_index = 0
+    
     while True:
-        token = input("Enter your Discord Token: ").strip().replace('"', '')
+        # Rotate through bots
+        current_bot = bots[bot_index % len(bots)]
+        current_message = messages[message_index % len(messages)]
         
-        while True:
-            try:
-                channel_id = input("Enter Channel ID for Farming: ").strip()
-                int(channel_id) # Validate integer
-                break
-            except ValueError:
-                print(f"{RED}Invalid Channel ID! Please enter numbers only.{RESET}")
-
-        tokens.append(f"{token} {channel_id}")
+        # Add random number to message to make it unique
+        final_message = f"{current_message} [{random.randint(1000, 9999)}]"
         
-        more = input("Add another account? (y/n): ").lower()
-        if more != 'y':
-            break
-    
-    # Save to .env
-    with open(".env", "w") as f:
-        f.write('TOKENS="' + ";".join(tokens) + '"\n')
-    print(f"{GREEN}Checking... Accounts saved to .env!{RESET}\n")
+        await send_message_to_channel(current_bot, CHANNEL_ID, final_message)
+        
+        # Update indices
+        bot_index += 1
+        message_index += 1
+        
+        # Wait random time between 30-60 seconds
+        await asyncio.sleep(random.randint(30, 60))
 
-    # 2. Configuration Profile
-    print(f"{YELLOW}[2] Behavior Profile{RESET}")
-    print("Choose a farming style:")
-    print("1. Safe (Recommended) - Slower, human-like, low ban risk")
-    print("2. Aggressive - Fast, max profit, higher ban risk")
-    print("3. Custom - Keep existing settings (if any)")
-    
-    choice = input("Enter choice (1-3): ").strip()
-    
-    if choice in ['1', '2']:
-        base_settings = {
-            "setprefix": "owo ",
-            "useSlashCommands": False,
-            "commands": {
-                "hunt": {"enabled": True, "cooldown": [15, 20], "useShortForm": True},
-                "battle": {"enabled": True, "cooldown": [15, 20], "useShortForm": True},
-                "sell": {"enabled": False, "cooldown": [410, 500], "rarity": ["c", "u", "r"]},
-                "sac": {"enabled": False, "cooldown": [410, 500], "rarity": ["c", "u", "r"]},
-                "pray": {"enabled": False, "cooldown": [310, 400], "userid": [], "pingUser": False},
-                "curse": {"enabled": False, "cooldown": [310, 400], "userid": [], "pingUser": False},
-                "lottery": {"enabled": False, "amount": 1},
-                "lvlGrind": {"enabled": False, "cooldown": [10, 15], "useQuoteInstead": False},
-                "cookie": {"enabled": False, "userid": 0, "pingUser": False},
-                "shop": {"enabled": False, "itemsToBuy": [1], "cooldown": [10, 16]},
-                "owo": {"enabled": True, "cooldown": [10, 15]},
-                "autoHuntBot": {"enabled": True, "cashToSpend": 10000, "upgrader": {"enabled": True, "sleeptime": [10, 15], "priorities": {"efficiency": 4, "duration": 2, "cost": 5, "gain": 4, "exp": 3, "radar": 1}}}
-            },
-            "gamble": {
-                "allottedAmount": 0,
-                "goalSystem": {"enabled": False, "amount": 0},
-                "coinflip": {"enabled": False, "startValue": 0, "multiplierOnLose": 0, "cooldown": [15, 20], "options": ["h"]},
-                "slots": {"enabled": False, "startValue": 0, "multiplierOnLose": 0, "cooldown": [15, 20]},
-                "blackjack": {}
-            },
-            "giveawayJoiner": {"enabled": False, "channelsToJoin": [], "cooldown": [40, 100], "messageRangeToCheck": 6},
-            "sleep": {"enabled": True, "frequencyPercentage": 50, "checkTime": [10, 20], "sleeptime": [300, 600]},
-             "misspell": {
-                "enabled": True,
-                "frequencyPercentage": 1,
-                "baseDelay": [0.03, 0.07],
-                "errorRectificationTimePerLetter": [0.04, 0.09]
-            },
-            "autoDaily": True,
-            "cashCheck": True,
-            "defaultCooldowns": {
-                 "longCooldown": [400, 600],
-                 "moderateCooldown": [70, 200],
-                 "shortCooldown": [10, 60],
-                 "briefCooldown": [1, 3],
-                 "captchaRestart": [5, 10],
-                 "commandHandler": {"betweenCommands": [2, 4], "beforeReaddingToQueue": 7},
-                 "reactionBot": {"hunt_and_battle": True, "owo": False, "pray_and_curse": False, "cooldown": [1, 2]}
-            },
-            "richPresence": {
-                "enabled": True,
-                "mode": "ninja",
-                "status": "online",
-                "activityType": "playing",
-                "text": "Visual Studio Code"
-            }
-        }
+@bots[0].event
+async def on_ready():
+    print(f"Bot 1 is ready as {bots[0].user}")
+    # Start the message rotation for all bots
+    asyncio.create_task(rotate_messages())
 
-        if choice == '1': # Safe
-            print(f"{GREEN}Applying Safe Profile...{RESET}")
-            # Safe defaults already set above essentially, just ensuring long delays
-            base_settings["sleep"]["enabled"] = True
-            base_settings["misspell"]["enabled"] = True
-            base_settings["defaultCooldowns"]["commandHandler"]["betweenCommands"] = [3, 6]
-            
-        elif choice == '2': # Aggressive
-            print(f"{RED}Applying Aggressive Profile...{RESET}")
-            base_settings["commands"]["hunt"]["cooldown"] = [15, 16]
-            base_settings["commands"]["battle"]["cooldown"] = [15, 16]
-            base_settings["commands"]["owo"]["cooldown"] = [10, 12]
-            base_settings["defaultCooldowns"]["commandHandler"]["betweenCommands"] = [0.5, 1.5]
-            base_settings["sleep"]["enabled"] = False # No sleep for the wicked
-            base_settings["misspell"]["enabled"] = False
-            
-        # Ensure directory
-        if not os.path.exists("config"):
-            os.makedirs("config")
-            
-        # Save config
-        with open("config/settings.json", "w") as f:
-            json.dump(base_settings, f, indent=4)
-        print(f"{GREEN}Configuration saved to config/settings.json!{RESET}\n")
+# Setup event handlers for other bots
+for i, bot in enumerate(bots[1:], start=2):
+    @bot.event
+    async def on_ready(b=bot, num=i):
+        print(f"Bot {num} is ready as {b.user}")
 
-    # 3. Finalize
-    print(f"{CYAN}Setup Complete!{RESET}")
-    print("You can now run the bot using:")
-    print(f"{GREEN}python mizu.py{RESET}")
+# Run all bots
+async def main():
+    # Start all bots
+    tasks = []
+    for i, bot in enumerate(bots):
+        token = token_list[i]
+        task = asyncio.create_task(bot.start(token))
+        tasks.append(task)
+    
+    # Wait for all bots to finish (they won't unless error)
+    await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
-    main()
+    print("Starting Discord bot with multiple tokens...")
+    print(f"Target channel ID: {CHANNEL_ID}")
+    print(f"Number of bots: {len(token_list)}")
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutting down...")
