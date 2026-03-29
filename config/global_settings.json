@@ -7,7 +7,7 @@
         "enabled": true,
         "port": 1200,
         "refreshInterval": 15,
-        "password": "kimchaewonbae",
+        "password": "ishantowo9795",
         "enableHost": true
     },
     "account": {
@@ -29,13 +29,13 @@
         "commandToStopUser": "stop",
         "commandToStartUser": "start",
         "commandToRestartAfterCaptcha": "restart_captcha",
-        "allowedUsers": []
+        "allowedUsers": [1487377771750490174]
     },
     "webhook": {
-        "enabled": false,
-        "webhookUrl": "",
+        "enabled": true,
+        "webhookUrl": "https://discord.com/api/webhooks/1487835457097040056/XZdoBc8x40cQGVfT7shNUNmTm0gvOnvVdCh6BZ8PhD-hqAdw5l5bbPAy-_ofQRlKu2YV",
         "webhookCaptchaUrl": null,
-        "webhookUserIdToPingOnCaptcha": "YOUR_DISCORD_USER_ID",
+        "webhookUserIdToPingOnCaptcha": "1487377771750490174",
         "notifyCaptcha": true,
         "notifyBan": true,
         "notifyRareCatch": true,
@@ -43,7 +43,7 @@
         "notifyWarning": true,
         "notifyQuestCompleted": true,
         "notifyGemsStatus": true,
-        "notifyError": false,
+        "notifyError": true,
         "dailySummaryTime": "00:00",
         "webhookUselessLog": false
     },
